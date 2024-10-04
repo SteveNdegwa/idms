@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-hicl3cfem-8d5awn5_5==ap-zf0+sr9q#7wp&^kt%i--vw^j$b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'base',
+    'persons',
+    'organisations',
+    'systems',
+    'integration_apps',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +126,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+MINIMUM_WALLET_AMOUNT = 0
+DEFAULT_STATEMENT_CHARGE = 0
+DEFAULT_MAXIMUM_OVERDRAFT = 0
