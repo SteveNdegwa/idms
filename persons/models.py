@@ -54,7 +54,7 @@ class Person(BaseModel):
     language_code = models.CharField(max_length=5, default='en')
     last_activity = models.DateTimeField(null=True, blank=True, editable=False)
     systems = models.ManyToManyField(System)
-    organisations = models.ManyToManyField(Organisation)
+    organisation = models.ForeignKey(Organisation, null=True, blank=True, on_delete=models.CASCADE)
     is_superuser =  models.BooleanField(default=False)
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.CASCADE)
     state = models.ForeignKey(State, null=True, blank=True, default=State.active_state, on_delete=models.CASCADE)
