@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from persons.models import Role, Permission, Person
+from users.models import Role, Permission, User
 
 
 @admin.register(Role)
@@ -13,8 +13,8 @@ class PermissionAdmin(admin.ModelAdmin):
 	list_display = ('name', 'description', 'state', 'date_modified', 'date_created')
 	search_fields = ('name',)
 
-@admin.register(Person)
-class PersonAdmin(admin.ModelAdmin):
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
 	list_display = (
 		'username', 'first_name', 'last_name', 'other_name', 'phone_number', 'email', 'is_superuser', 'role',
 		'terms_and_conditions_accepted', 'language_code', 'last_activity', 'state', 'date_modified', 'date_created')
@@ -24,11 +24,11 @@ class PersonAdmin(admin.ModelAdmin):
 		'organisation__name', 'state__name')
 	fieldsets = (
 		(
-			'Personal Details', {
+			'Useral Details', {
 				'fields': (('username', 'phone_number', 'email'), 'systems', 'organisation', 'role')
 			}),
 		('Other Info', {'fields': ('first_name', 'last_name', 'other_name', 'language_code')}),
-		('Status', {'fields': ('state', ('is_superuser', 'terms_and_conditions_accepted'))}),
+		('Status', {'fields': ('state', ('is_superuser', 'is_staff', 'is_active'), 'terms_and_conditions_accepted')}),
 	)
 
 
