@@ -54,6 +54,8 @@ class IdentitiesAdministration(object):
                     generated = OAuthHelper.generate_device_otp()
                     otp = list(generated)
                     key = (otp[1]).decode()
+                    totp =  otp[0]
+                    print(totp.decode())
                     oauth = IdentityService().create(
                         user=user, source_ip=get_client_ip(request), totp_key=key, totp_time_value=otp[2],
                         state=State.activation_pending())

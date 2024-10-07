@@ -103,6 +103,7 @@ class ServiceBase(object):
 				record.refresh_from_db()
 				return record
 		except Exception as e:
+			lgr.exception('%sService update exception: %s' % (self.manager.model.__name__, e))
 			pass  # lgr.exception('%sService update exception: %s' % (self.manager.model.__name__, e))
 		return None
 

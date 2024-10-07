@@ -74,6 +74,8 @@ class Organisation(GenericBaseModel):
     income_score = models.BooleanField(default=True)
     bs_income_score = models.BooleanField(default=True)
 
+    SYNC_MODEL = False
+
     def __str__(self):
         return '%s' % self.name
 
