@@ -27,7 +27,7 @@ class State(GenericBaseModel):
         return self.name
 
     @classmethod
-    def active_state(cls):
+    def active(cls):
         try:
             state = cls.objects.get(name="Active")
             return state
@@ -36,7 +36,7 @@ class State(GenericBaseModel):
             return None
 
     @classmethod
-    def inactive_state(cls):
+    def inactive(cls):
         try:
             state = cls.objects.get(name="Inactive")
             return state
@@ -44,10 +44,28 @@ class State(GenericBaseModel):
             lgr.exception("State model - inactive_state exception: %s" % e)
             return None
 
+    @classmethod
+    def expired(cls):
+        try:
+            state = cls.objects.get(name="Expired")
+            return state
+        except Exception as e:
+            lgr.exception("State model - expired_state exception: %s" % e)
+            return None
+
+    @classmethod
+    def activation_pending(cls):
+        try:
+            state = cls.objects.get(name="Activation Pending")
+            return state
+        except Exception as e:
+            lgr.exception("State model - activation_pending_state exception: %s" % e)
+            return None
+
 
 class Country(GenericBaseModel):
     code = models.CharField(max_length=10, null=True, blank=True)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active_state, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s - %s" % (self.name, self.code)

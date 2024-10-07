@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'organisations',
     'systems',
     'integration_apps',
+    'identities',
 ]
 
 MIDDLEWARE = [
@@ -127,6 +128,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+TOKEN_EXPIRY_SECONDS = 20000
 
 MINIMUM_WALLET_AMOUNT = 0
 DEFAULT_STATEMENT_CHARGE = 0

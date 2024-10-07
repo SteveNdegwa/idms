@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 from base.models import BaseModel, State, GenericBaseModel
 from organisations.models import Organisation
@@ -14,7 +15,7 @@ lgr.propagate = False
 
 
 class Role(GenericBaseModel):
-    state = models.ForeignKey(State, default=State.active_state, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -23,7 +24,7 @@ class Role(GenericBaseModel):
         ordering = ('-date_created',)
 
 class Permission(GenericBaseModel):
-    state = models.ForeignKey(State, default=State.active_state, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -34,7 +35,7 @@ class Permission(GenericBaseModel):
 class RolePermission(BaseModel):
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, null=True, blank=True, on_delete=models.CASCADE)
-    state = models.ForeignKey(State, default=State.active_state, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s - %s" % (self.role.name, self.permission.name)
@@ -53,7 +54,7 @@ class User(BaseModel, AbstractUser):
     systems = models.ManyToManyField(System)
     organisation = models.ForeignKey(Organisation, null=True, blank=True, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.CASCADE)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active_state, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     objects = UserManager()
 
@@ -62,6 +63,13 @@ class User(BaseModel, AbstractUser):
 
     class Meta:
         ordering = ('-date_created',)
+
+    def update_last_activity(self):
+        """
+        Update the last time the user was activity
+        """
+        self.last_activity = timezone.now()
+        self.save()
 
     def set_password(self, raw_password):
         try:
