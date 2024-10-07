@@ -49,13 +49,13 @@ class UsersAdministration(object):
             username = data.get("username", "")
             if not username:
                 return JsonResponse({"code": "999.999.001", "message": "Username not provided"})
-            if UserService().get(username=username, state=State.active):
+            if UserService().get(username=username, state=State.active()):
                 return JsonResponse({"code": "999.999.002", "message": "Username already exists"})
             organisation = data.get("organisation", "")
             organisation = OrganisationService().filter(Q(name=organisation) | Q(remote_code=organisation))
             organisation = organisation.order_by('-date_created').first() if organisation else None
             role = data.get("role", "")
-            role = RoleService().get(name=role ,state=State.active)
+            role = RoleService().get(name=role, state=State.active())
             if not role:
                 return JsonResponse({"code": "999.999.003", "message": "Role provided not valid"})
             k = {
@@ -74,9 +74,10 @@ class UsersAdministration(object):
             if not user:
                 return JsonResponse({"code": "999.999.004", "message": "User not created"})
             systems = data.get("systems", [])
-            if systems:
-                user.systems.add([SystemService().get(name=system) for system in systems])
-                user.save()
+            for system in systems:
+                system = str(system).upper().strip()
+                user.systems.add(SystemService().get(name=system))
+            user.save()
             password = generate_password()
             user.set_password(password)
             #TODO: SEND NOTIFICATION
@@ -96,9 +97,9 @@ class UsersAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            if not UserService().get(id=user_id, state=State.active):
+            if not UserService().get(id=user_id, state=State.active()):
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
-            if not UserService().update(pk=user_id, state=State.inactive):
+            if not UserService().update(pk=user_id, state=State.inactive()):
                 return JsonResponse({"code": "999.999.002", "message": "User not deleted"})
             return JsonResponse({"code": "100.000.000", "message": "User deleted successfully"})
         except Exception as e:
@@ -116,12 +117,12 @@ class UsersAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            if not UserService().get(id=user_id, state=State.active):
+            if not UserService().get(id=user_id, state=State.active()):
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             username = data.get("username", "")
             if not username:
                 return JsonResponse({"code": "999.999.002", "message": "Username not provided"})
-            if UserService().get(~Q(id=user_id), username=username, state=State.active):
+            if UserService().get(~Q(id=user_id), username=username, state=State.active()):
                 return JsonResponse({"code": "999.999.003", "message": "Username already exists"})
             k = {
                 "username": username,
@@ -150,7 +151,7 @@ class UsersAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            user = UserService().get(id=user_id, state=State.active)
+            user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             new_password = data.get("password")
@@ -173,7 +174,7 @@ class UsersAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            user = UserService().get(id=user_id, state=State.active)
+            user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             password = generate_password()
@@ -195,10 +196,10 @@ class UsersAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id" ,"")
-            if not UserService().get(id=user_id, state=State.active):
+            if not UserService().get(id=user_id, state=State.active()):
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             role = data.get("role", "")
-            role = RoleService().get(name=role, state=State.active)
+            role = RoleService().get(name=role, state=State.active())
             if not role:
                 return JsonResponse({"code": "999.999.003", "message": "Role provided not valid"})
             if not UserService().update(pk=user_id, role=role):

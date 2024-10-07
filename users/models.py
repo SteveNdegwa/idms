@@ -15,7 +15,7 @@ lgr.propagate = False
 
 
 class Role(GenericBaseModel):
-    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active(), on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -24,7 +24,7 @@ class Role(GenericBaseModel):
         ordering = ('-date_created',)
 
 class Permission(GenericBaseModel):
-    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active(), on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -35,7 +35,7 @@ class Permission(GenericBaseModel):
 class RolePermission(BaseModel):
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, null=True, blank=True, on_delete=models.CASCADE)
-    state = models.ForeignKey(State, default=State.active, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, default=State.active(), on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s - %s" % (self.role.name, self.permission.name)
@@ -54,9 +54,10 @@ class User(BaseModel, AbstractUser):
     systems = models.ManyToManyField(System)
     organisation = models.ForeignKey(Organisation, null=True, blank=True, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.CASCADE)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
 
     objects = UserManager()
+    SYNC_MODEL = False
 
     def __str__(self):
         return self.username

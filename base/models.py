@@ -65,7 +65,7 @@ class State(GenericBaseModel):
 
 class Country(GenericBaseModel):
     code = models.CharField(max_length=10, null=True, blank=True)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s - %s" % (self.name, self.code)

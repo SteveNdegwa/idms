@@ -39,24 +39,24 @@ class IdentitiesAdministration(object):
             password = data.get("password", "")
             if not username:
                 return JsonResponse({"code": "999.999.001", "message": "Username not provided"})
-            user = UserService().get(username=username, state=State.active)
+            user = UserService().get(username=username, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.002", "message": "User not found"})
             if not user.check_password(password):
                 return JsonResponse({"code": "999.999.003", "message": "Wrong credentials"})
-            oauth = IdentityService().filter(username=username, state=State.active)
+            oauth = IdentityService().filter(username=username, state=State.active())
             oauth = oauth.order_by('-date_created').first() if oauth else None
             if not oauth:
-                oauth = IdentityService().filter(user=user, date_created__date=timezone.now(), state=State.expired)
+                oauth = IdentityService().filter(user=user, date_created__date=timezone.now(), state=State.expired())
                 oauth = oauth.order_by('-date_created').first() if oauth else None
-                oauth = IdentityService().update(pk=oauth.id, state=State.activation_pending) if oauth else None
+                oauth = IdentityService().update(pk=oauth.id, state=State.activation_pending()) if oauth else None
                 if not oauth:
                     generated = OAuthHelper.generate_device_otp()
                     otp = list(generated)
                     key = (otp[1]).decode()
                     oauth = IdentityService().create(
                         user=user, source_ip=get_client_ip(request), totp_key=key, totp_time_value=otp[2],
-                        state=State.activation_pending)
+                        state=State.activation_pending())
                     if not oauth:
                         return JsonResponse({"code": "999.999.004", "message": "Identity not created"})
                     # TODO: SEND NOTIFICATION
@@ -87,7 +87,7 @@ class IdentitiesAdministration(object):
             token = data.get("token", "")
             totp = data.get("otp", "")
             oauth = IdentityService().filter(
-                ~Q(user=None), state__in=[State.active, State.activation_pending, State.expired], token=token,
+                ~Q(user=None), state__in=[State.active(), State.activation_pending(), State.expired()], token=token,
                 expires_at__gt=timezone.now())
             oauth = oauth.order_by('-date_created').first() if oauth else None
             if not oauth:
@@ -95,7 +95,7 @@ class IdentitiesAdministration(object):
             generated = OAuthHelper.verify_device(oauth.totp_key, str(totp).strip(), float(oauth.totp_time_value))
             if not generated:
                 return JsonResponse({"code": "999.999.002", "message": "Invalid OTP"})
-            oauth = IdentityService().update(pk=oauth.id, state=State.active)
+            oauth = IdentityService().update(pk=oauth.id, state=State.active())
             if not oauth:
                 return JsonResponse({"code": "999.999.003", "message": "Identity not activated"})
             oauth = oauth.extend()
@@ -121,12 +121,12 @@ class IdentitiesAdministration(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id" , "")
-            user = UserService().get(id=user_id, state=State.active)
+            user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
-            oauth = IdentityService().filter(user=user, state=State.active)
+            oauth = IdentityService().filter(user=user, state=State.active())
             if oauth:
-                oauth.update(state=State.expired)
+                oauth.update(state=State.expired())
             return JsonResponse({"code": "100.000.000", "message": "User logged out successfully"})
         except Exception as e:
             lgr.exception("Logout exception: %s" % e)

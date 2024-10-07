@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('source_ip', models.GenericIPAddressField(blank=True, help_text='The originating IP Address.', null=True)),
                 ('totp_key', models.CharField(blank=True, max_length=100, null=True)),
                 ('totp_time_value', models.CharField(blank=True, max_length=100, null=True)),
-                ('state', models.ForeignKey(default=base.models.State.active, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(default=base.models.State.active(), on_delete=django.db.models.deletion.CASCADE, to='base.state')),
                 ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={

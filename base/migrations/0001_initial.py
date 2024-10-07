@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=100, null=True)),
                 ('description', models.CharField(blank=True, max_length=100, null=True)),
                 ('code', models.CharField(blank=True, max_length=10, null=True)),
-                ('state', models.ForeignKey(blank=True, default=base.models.State.active, null=True, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(blank=True, default=base.models.State.active(), null=True, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
             ],
             options={
                 'ordering': ('-date_created',),

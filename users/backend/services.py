@@ -1,12 +1,9 @@
-from users.models import User, Role, Permission, RolePermission, Password
+from users.models import User, Role, Permission, RolePermission
 from utils.servicebase import ServiceBase
 
 
 class UserService(ServiceBase):
     manager = User.objects
-
-class PasswordService(ServiceBase):
-    manager = Password.objects
 
 class RoleService(ServiceBase):
     manager = Role.objects
