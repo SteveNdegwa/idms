@@ -207,9 +207,3 @@ class UsersAdministration(object):
         except Exception as e:
             lgr.exception("Change role exception: %s" % e)
             return JsonResponse({"code": "999.999.999", "message": "Change role failed with an exception"})
-
-
-
-
-
-
