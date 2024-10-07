@@ -64,8 +64,13 @@ class User(BaseModel, AbstractUser):
         ordering = ('-date_created',)
 
     def set_password(self, raw_password):
-        self.password = make_password(raw_password)
-        self.save()
+        try:
+            self.password = make_password(raw_password)
+            self.save()
+            return True
+        except Exception as e:
+            lgr.exception("User model - set password exception: %s" % e)
+            return False
 
     def full_name(self):
         return "%s %s %s" % (self.first_name, self.other_name, self.last_name)

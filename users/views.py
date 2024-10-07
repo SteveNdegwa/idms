@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from base.models import State
 from organisations.backend.services import OrganisationService
 from users.backend.services import UserService, RoleService
 from systems.backend.services import SystemService
@@ -34,9 +35,9 @@ def generate_password(length=6):
     random.shuffle(cln)
     return ''.join(cln)
 
-class PersonManager(object):
+class UserAdministration(object):
     @csrf_exempt
-    def create_person(self, request):
+    def create_user(self, request):
         """
         Creates a person
         @params: WSGI Request
@@ -48,17 +49,15 @@ class PersonManager(object):
             username = data.get("username", "")
             if not username:
                 return JsonResponse({"code": "999.999.001", "message": "Username not provided"})
-            if UserService().get(username=username):
+            if UserService().get(username=username, state=State.active_state):
                 return JsonResponse({"code": "999.999.002", "message": "Username already exists"})
             organisation = data.get("organisation", "")
             organisation = OrganisationService().filter(Q(name=organisation) | Q(remote_code=organisation))
             organisation = organisation.order_by('-date_created').first() if organisation else None
             role = data.get("role", "")
+            role = RoleService().get(name=role ,state=State.active_state)
             if not role:
-                return JsonResponse({"code": "999.999.003", "message": "Role not provided"})
-            role = RoleService().get(name=role)
-            if not role:
-                return JsonResponse({"code": "999.999.004", "message": "Role provided not valid"})
+                return JsonResponse({"code": "999.999.003", "message": "Role provided not valid"})
             k = {
                 "username": username,
                 "first_name": data.get("first_name" ,""),
@@ -73,7 +72,7 @@ class PersonManager(object):
             }
             user = UserService().create(**k)
             if not user:
-                return JsonResponse({"code": "999.999.005", "message": "Person not created"})
+                return JsonResponse({"code": "999.999.004", "message": "User not created"})
             systems = data.get("systems", [])
             if systems:
                 user.systems.add([SystemService().get(name=system) for system in systems])
@@ -81,11 +80,30 @@ class PersonManager(object):
             password = generate_password()
             user.set_password(password)
             #TODO: SEND NOTIFICATION
-            return JsonResponse({"code": "100.000.000", "message": "Person created successfully"})
+            return JsonResponse({"code": "100.000.000", "message": "User created successfully"})
         except Exception as e:
-            lgr.exception("Create person exception: %s" % e)
-            return JsonResponse({"code": "999.999.999", "message": "Create person failed with an exception"})
+            lgr.exception("Create user exception: %s" % e)
+            return JsonResponse({"code": "999.999.999", "message": "Create user failed with an exception"})
 
+    @csrf_exempt
+    def delete_user(self, request):
+        """
+        Creates a person
+        @params: WSGI Request
+        @return: success or failure message
+        @rtype: JsonResponse
+        """
+        try:
+            data = get_request_data(request)
+            user_id = data.get("user_id", "")
+            if not UserService().get(id=user_id, state=State.active_state):
+                return JsonResponse({"code": "999.999.001", "message": "User not found"})
+            if not UserService().update(pk=user_id, state=State.inactive_state):
+                return JsonResponse({"code": "999.999.002", "message": "User not deleted"})
+            return JsonResponse({"code": "100.000.000", "message": "User deleted successfully"})
+        except Exception as e:
+            lgr.exception("Delete user exception: %s" % e)
+            return JsonResponse({"code": "999.999.999", "message": "Delete user failed with an exception"})
 
     @csrf_exempt
     def update_personal_details(self, request):
@@ -97,13 +115,13 @@ class PersonManager(object):
         """
         try:
             data = get_request_data(request)
-            user_id = data.get("user_id" ,"")
-            if not UserService().get(id=user_id):
+            user_id = data.get("user_id", "")
+            if not UserService().get(id=user_id, state=State.active_state):
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             username = data.get("username", "")
             if not username:
                 return JsonResponse({"code": "999.999.002", "message": "Username not provided"})
-            if UserService().get(~Q(id=user_id), username=username):
+            if UserService().get(~Q(id=user_id), username=username, state=State.active_state):
                 return JsonResponse({"code": "999.999.003", "message": "Username already exists"})
             k = {
                 "username": username,
@@ -113,18 +131,18 @@ class PersonManager(object):
                 "phone_number": data.get("phone_number", ""),
                 "email": data.get("email", ""),
             }
-            person = UserService().update(pk=user_id, **k)
-            if not person:
-                return JsonResponse({"code": "999.999.005", "message": "Person not updated"})
-            return JsonResponse({"code": "100.000.000", "message": "Person updated successfully"})
+            user = UserService().update(pk=user_id, **k)
+            if not user:
+                return JsonResponse({"code": "999.999.005", "message": "User not updated"})
+            return JsonResponse({"code": "100.000.000", "message": "User updated successfully"})
         except Exception as e:
-            lgr.exception("Edit person exception: %s" % e)
-            return JsonResponse({"code": "999.999.999", "message": "Edit person failed with an exception"})
+            lgr.exception("Update personal details exception: %s" % e)
+            return JsonResponse({"code": "999.999.999", "message": "Update personal details failed with an exception"})
 
     @csrf_exempt
-    def update_password(self, request):
+    def change_password(self, request):
         """
-        Updates a users password
+        Changes a users password
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
@@ -132,17 +150,17 @@ class PersonManager(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            user = UserService().get(id=user_id)
-            if user:
+            user = UserService().get(id=user_id, state=State.active_state)
+            if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             new_password = data.get("password")
             if not new_password:
                 return JsonResponse({"code": "999.999.002", "message": "Password not provided"})
             user.set_password(new_password)
-            return JsonResponse({"code": "100.000.000", "message": "Password updated successfully"})
+            return JsonResponse({"code": "100.000.000", "message": "Password changed successfully"})
         except Exception as e:
             lgr.exception("Update password exception: %s" % e)
-            return JsonResponse({"code": "999.999.999", "message": "Update password failed with an exception"})
+            return JsonResponse({"code": "999.999.999", "message": "Change password failed with an exception"})
 
     @csrf_exempt
     def reset_password(self, request):
@@ -155,8 +173,8 @@ class PersonManager(object):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            user = UserService().get(id=user_id)
-            if user:
+            user = UserService().get(id=user_id, state=State.active_state)
+            if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             password = generate_password()
             user.set_password(password)
@@ -164,11 +182,31 @@ class PersonManager(object):
             return JsonResponse({"code": "100.000.000", "message": "Password reset successfully"})
         except Exception as e:
             lgr.exception("Update password exception: %s" % e)
-            return JsonResponse({"code": "999.999.999", "message": "Update password failed with an exception"})
+            return JsonResponse({"code": "999.999.999", "message": "Reset password failed with an exception"})
 
     @csrf_exempt
     def change_role(self, request):
-        pass
+        """
+        Resets a users password
+        @params: WSGI Request
+        @return: success or failure message
+        @rtype: JsonResponse
+        """
+        try:
+            data = get_request_data(request)
+            user_id = data.get("user_id" ,"")
+            if not UserService().get(id=user_id, state=State.active_state):
+                return JsonResponse({"code": "999.999.001", "message": "User not found"})
+            role = data.get("role", "")
+            role = RoleService().get(name=role, state=State.active_state)
+            if not role:
+                return JsonResponse({"code": "999.999.003", "message": "Role provided not valid"})
+            if not UserService().update(pk=user_id, role=role):
+                return JsonResponse({"code": "999.999.004", "message": "Role not changed"})
+            return JsonResponse({"code": "100.000.000", "message": "Role changed successfully"})
+        except Exception as e:
+            lgr.exception("Change role exception: %s" % e)
+            return JsonResponse({"code": "999.999.999", "message": "Change role failed with an exception"})
 
 
 
