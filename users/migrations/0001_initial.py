@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('name', models.CharField(blank=True, max_length=100, null=True)),
                 ('description', models.CharField(blank=True, max_length=100, null=True)),
-                ('state', models.ForeignKey(default=base.models.State.active_state, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(default=base.models.State.active, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
             ],
             options={
                 'ordering': ('-date_created',),
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('name', models.CharField(blank=True, max_length=100, null=True)),
                 ('description', models.CharField(blank=True, max_length=100, null=True)),
-                ('state', models.ForeignKey(default=base.models.State.active_state, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(default=base.models.State.active, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
             ],
             options={
                 'ordering': ('-date_created',),
@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
                 ('last_activity', models.DateTimeField(blank=True, editable=False, null=True)),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('organisation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='organisations.organisation')),
-                ('state', models.ForeignKey(blank=True, default=base.models.State.active_state, null=True, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(blank=True, default=base.models.State.active, null=True, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
                 ('systems', models.ManyToManyField(to='systems.system')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
                 ('role', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='users.role')),
@@ -92,7 +92,7 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('permission', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='users.permission')),
                 ('role', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='users.role')),
-                ('state', models.ForeignKey(default=base.models.State.active_state, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
+                ('state', models.ForeignKey(default=base.models.State.active, on_delete=django.db.models.deletion.CASCADE, to='base.state')),
             ],
             options={
                 'ordering': ('-date_created',),
