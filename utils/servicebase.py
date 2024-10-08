@@ -52,7 +52,8 @@ class ServiceBase(object):
 			if self.manager is not None:
 				return self.manager.get(*args, **kwargs)
 		except Exception as e:
-			pass  # lgr.exception('%sService get exception: %s' % (self.manager.model.__name__, e))
+			# lgr.exception('%sService get exception: %s' % (self.manager.model.__name__, e))
+			pass
 		return None
 
 	def filter(self, *args, **kwargs):
