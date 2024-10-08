@@ -62,6 +62,23 @@ class State(GenericBaseModel):
             lgr.exception("State model - activation_pending_state exception: %s" % e)
             return None
 
+    @classmethod
+    def completed(cls):
+        try:
+            state = cls.objects.get(name="Completed")
+            return state
+        except Exception as e:
+            lgr.exception("State model - activation_pending_state exception: %s" % e)
+            return None
+
+    @classmethod
+    def failed(cls):
+        try:
+            state = cls.objects.get(name="Failed")
+            return state
+        except Exception as e:
+            lgr.exception("State model - activation_pending_state exception: %s" % e)
+            return None
 
 class Country(GenericBaseModel):
     code = models.CharField(max_length=10, null=True, blank=True)
@@ -80,6 +97,23 @@ class Country(GenericBaseModel):
         except Exception as e:
             lgr.exception("Country model - default_country exception: %s" % e)
             return None
+
+class TransactionType(GenericBaseModel):
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
+class Transaction(BaseModel):
+    transaction_type = models.ForeignKey(TransactionType, on_delete=models.CASCADE)
+    reference = models.CharField(max_length=100, null=True, blank=True)
+    source_ip = models.CharField(max_length=30, null=True, blank=True)
+    request = models.TextField(null=True, blank=True)
+    response = models.TextField(null=True, blank=True)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.transaction_type
 
 
 
