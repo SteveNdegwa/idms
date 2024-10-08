@@ -9,22 +9,16 @@ from django.views.decorators.csrf import csrf_exempt
 from base.models import State
 from identities.backend.services import IdentityService
 from users.backend.services import UserService
+from utils.common import create_notification_detail, get_client_ip
 from utils.generate_system_aoth_otp import OAuthHelper
 from utils.get_request_data import get_request_data
+from utils.transaction_log_base import TransactionLogBase
 
 lgr = logging.getLogger(__name__)
 lgr.propagate = False
 
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
 
-
-class IdentitiesAdministration(object):
+class IdentitiesAdministration(TransactionLogBase):
     @csrf_exempt
     def login(self, request):
         """
@@ -55,13 +49,15 @@ class IdentitiesAdministration(object):
                     otp = list(generated)
                     key = (otp[1]).decode()
                     totp =  otp[0]
-                    print(totp.decode())
                     oauth = IdentityService().create(
                         user=user, source_ip=get_client_ip(request), totp_key=key, totp_time_value=otp[2],
                         state=State.activation_pending())
                     if not oauth:
                         return JsonResponse({"code": "999.999.004", "message": "Identity not created"})
-                    # TODO: SEND NOTIFICATION
+                    notification_msg = "Welcome. Your OTP is %s" % totp.decode()
+                    notification_details = create_notification_detail(
+                        message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
+                    self.send_notification(notifications=notification_details)
             oauth = oauth.extend()
             user.update_last_activity()
             return JsonResponse({

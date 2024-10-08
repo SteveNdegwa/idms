@@ -1,5 +1,4 @@
 import logging
-import random
 
 from django.db.models import Q
 from django.http import JsonResponse
@@ -9,33 +8,13 @@ from base.models import State
 from organisations.backend.services import OrganisationService
 from users.backend.services import UserService, RoleService
 from systems.backend.services import SystemService
-from utils.common import create_notification_detail
+from utils.common import create_notification_detail, generate_password
 from utils.get_request_data import get_request_data
 from utils.transaction_log_base import TransactionLogBase
 
 lgr = logging.getLogger(__name__)
 lgr.propagate = False
 
-
-def generate_password(length=6):
-    """
-    This function generates the random passwords for users.
-    @param length: The number of characters the password should have. Defaults to 6.
-    @type length: int
-    @return: The generated password.
-    @rtype: str
-    """
-    import string
-    groups = [
-        string.ascii_uppercase.replace('O', '').replace('I', ''), string.digits,
-        string.ascii_lowercase.replace('o', '').replace('i', '').replace('l', ''), '!#%&+:;?@[]_{}']
-    cln = [random.choice(groups[n]) for n in range(4)]
-    for m in range(length):
-        if len(cln) >= length:
-            break
-        cln.append(random.choice(groups[int(random.choice('0123'))]))
-    random.shuffle(cln)
-    return ''.join(cln)
 
 class UsersAdministration(TransactionLogBase):
     @csrf_exempt

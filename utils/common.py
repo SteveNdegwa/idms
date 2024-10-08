@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from django.utils import timezone as tz
@@ -7,6 +8,36 @@ from pytz import timezone
 
 lgr = logging.getLogger(__name__)
 lgr.propagate = False
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+def generate_password(length=6):
+    """
+    This function generates the random passwords for users.
+    @param length: The number of characters the password should have. Defaults to 6.
+    @type length: int
+    @return: The generated password.
+    @rtype: str
+    """
+    import string
+    groups = [
+        string.ascii_uppercase.replace('O', '').replace('I', ''), string.digits,
+        string.ascii_lowercase.replace('o', '').replace('i', '').replace('l', ''), '!#%&+:;?@[]_{}']
+    cln = [random.choice(groups[n]) for n in range(4)]
+    for m in range(length):
+        if len(cln) >= length:
+            break
+        cln.append(random.choice(groups[int(random.choice('0123'))]))
+    random.shuffle(cln)
+    return ''.join(cln)
 
 def json_super_serializer(obj):
     """

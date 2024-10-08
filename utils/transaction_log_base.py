@@ -9,8 +9,7 @@ from django.conf import settings
 from base.backend.services import TransactionService, TransactionTypeService, NotificationTypeService, \
     NotificationService
 from base.models import State
-from identities.views import get_client_ip
-from utils.common import json_super_serializer
+from utils.common import json_super_serializer, get_client_ip
 from utils.get_request_data import get_request_data
 
 lgr = logging.getLogger(__name__)
