@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from users.models import Role, Permission, User
+from users.models import Role, Permission, User, RolePermission
 
 
 @admin.register(Role)
@@ -12,6 +12,11 @@ class RoleAdmin(admin.ModelAdmin):
 class PermissionAdmin(admin.ModelAdmin):
 	list_display = ('name', 'description', 'state', 'date_modified', 'date_created')
 	search_fields = ('name',)
+
+@admin.register(RolePermission)
+class RolePermissionAdmin(admin.ModelAdmin):
+	list_display = ('role', 'permission', 'state', 'date_modified', 'date_created')
+	search_fields = ('role__name', 'permission__name')
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):

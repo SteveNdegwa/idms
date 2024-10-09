@@ -22,23 +22,29 @@ class IdentitiesAdministration(TransactionLogBase):
     @csrf_exempt
     def login(self, request):
         """
-        Logs in a user
+        Logs in a user - Either through username or email or phone number
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
         """
         try:
             data = get_request_data(request)
-            username = data.get("username", "")
+            credential = data.get("credential", "")
             password = data.get("password", "")
-            if not username:
-                return JsonResponse({"code": "999.999.001", "message": "Username not provided"})
-            user = UserService().get(username=username, state=State.active())
+            system = data.get("system", "")
+            if not credential or not password:
+                return JsonResponse({"code": "999.999.001", "message": "Login credentials not provided"})
+            if not system:
+                return JsonResponse({"code": "999.999.002", "message": "System not provided"})
+            user = UserService().filter(
+                Q(username=credential) | Q(email=credential) | Q(phone_number=credential), systems__name=system,
+                state=State.active())
             if not user:
-                return JsonResponse({"code": "999.999.002", "message": "User not found"})
+                return JsonResponse({"code": "999.999.003", "message": "User not found"})
+            user = user.first()
             if not user.check_password(password):
-                return JsonResponse({"code": "999.999.003", "message": "Wrong credentials"})
-            oauth = IdentityService().filter(username=username, state=State.active())
+                return JsonResponse({"code": "999.999.004", "message": "Wrong credentials"})
+            oauth = IdentityService().filter(user=user, state=State.active())
             oauth = oauth.order_by('-date_created').first() if oauth else None
             if not oauth:
                 oauth = IdentityService().filter(user=user, date_created__date=timezone.now(), state=State.expired())
@@ -53,7 +59,7 @@ class IdentitiesAdministration(TransactionLogBase):
                         user=user, source_ip=get_client_ip(request), totp_key=key, totp_time_value=otp[2],
                         state=State.activation_pending())
                     if not oauth:
-                        return JsonResponse({"code": "999.999.004", "message": "Identity not created"})
+                        return JsonResponse({"code": "999.999.005", "message": "Identity not created"})
                     notification_msg = "Welcome. Your OTP is %s" % totp.decode()
                     notification_details = create_notification_detail(
                         message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)

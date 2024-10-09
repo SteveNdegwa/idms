@@ -113,6 +113,9 @@ class TransactionType(GenericBaseModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ('-date_created',)
+
 class Transaction(BaseModel):
     transaction_type = models.ForeignKey(TransactionType, on_delete=models.CASCADE)
     reference = models.CharField(max_length=100, null=True, blank=True)
@@ -135,6 +138,9 @@ class NotificationType(GenericBaseModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ('-date_created',)
 
 class Notification(BaseModel):
     notification_type = models.ForeignKey(NotificationType, on_delete=models.CASCADE)

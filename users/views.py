@@ -1,5 +1,6 @@
 import logging
 
+from django.db import transaction as trx
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -32,18 +33,23 @@ class UsersAdministration(TransactionLogBase):
                 return JsonResponse({"code": "999.999.001", "message": "Transaction not created"})
             data = get_request_data(request)
             username = data.get("username", "")
-            if not username:
-                response = {"code": "999.999.002", "message": "Username not provided"}
-                self.mark_transaction_failed(transaction, response=response)
-                return JsonResponse(response)
-            # TODO: ENFORCE EMAIL AND PHONE NUMBER UNIQUENESS FOR SAME SYSTEM
             email = data.get("email", "")
-            if not email:
-                response = {"code": "999.999.003", "message": "Email not provided"}
+            phone_number = data.get("phone_number", "")
+            systems = data.get("systems", [])
+            if not username or not email or not phone_number:
+                response = {"code": "999.999.002", "message": "Provide all required details"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             if UserService().get(username=username, state=State.active()):
-                response = {"code": "999.999.004", "message": "Username already exists"}
+                response = {"code": "999.999.003", "message": "Username already exists"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
+            if UserService().get(email=email, systems__name__in=systems, state=State.active()):
+                response = {"code": "999.999.004", "message": "Email address already exists"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
+            if UserService().get(phone_number=phone_number, systems__name__in=systems, state=State.active()):
+                response = {"code": "999.999.005", "message": "Phone number already exists"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             organisation = data.get("organisation", "")
@@ -52,31 +58,32 @@ class UsersAdministration(TransactionLogBase):
             role = data.get("role", "")
             role = RoleService().get(name=role, state=State.active())
             if not role:
-                response = {"code": "999.999.005", "message": "Role provided not valid"}
+                response = {"code": "999.999.006", "message": "Role provided not valid"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             k = {
                 "username": username,
                 "email": email,
+                "phone_number": phone_number,
                 "first_name": data.get("first_name" ,""),
                 "last_name": data.get("last_name" ,""),
                 "other_name": data.get("other_name" ,""),
-                "phone_number": data.get("phone_number" ,""),
                 "terms_and_conditions_accepted": data.get("terms_and_conditions_accepted" ,False),
                 "language_code": data.get("language_code" ,"en"),
                 "role": role,
                 "organisation": organisation,
             }
-            user = UserService().create(**k)
-            if not user:
-                response = {"code": "999.999.006", "message": "User not created"}
-                self.mark_transaction_failed(transaction, response=response)
-                return JsonResponse(response)
-            systems = data.get("systems", [])
-            for system in systems:
-                system = str(system).upper().strip()
-                user.systems.add(SystemService().get(name=system))
-            user.save()
+            with trx.atomic():
+                user = UserService().create(**k)
+                if not user:
+                    response = {"code": "999.999.007", "message": "User not created"}
+                    self.mark_transaction_failed(transaction, response=response)
+                    return JsonResponse(response)
+                for system in systems:
+                    s = SystemService().get(name=system)
+                    if not s:
+                        raise Exception("Invalid system - %s" % system)
+                    user.systems.add(s)
             password = generate_password()
             user.set_password(password)
             notification_msg = "Welcome, use your phone number or email to login and %s as your password" % password
@@ -138,24 +145,34 @@ class UsersAdministration(TransactionLogBase):
         try:
             data = get_request_data(request)
             user_id = data.get("user_id", "")
-            if not UserService().get(id=user_id, state=State.active()):
+            user = UserService().get(id=user_id, state=State.active())
+            if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             username = data.get("username", "")
-            if not username:
-                return JsonResponse({"code": "999.999.002", "message": "Username not provided"})
-            if UserService().get(~Q(id=user_id), username=username, state=State.active()):
+            email = data.get("email", "")
+            phone_number = data.get("phone_number", "")
+            if not username or not email or not phone_number:
+                return JsonResponse({"code": "999.999.002", "message": "Provide all required details"})
+            if UserService().filter(~Q(id=user_id), username=username, state=State.active()):
                 return JsonResponse({"code": "999.999.003", "message": "Username already exists"})
+            if UserService().filter(
+                    ~Q(id=user_id), systems_in=list(user.systems.all()), email=email, state=State.active()):
+                return JsonResponse({"code": "999.999.004", "message": "Email already exists"})
+            if UserService().filter(
+                    ~Q(id=user_id), systems_in=list(user.systems.all()), phone_number=phone_number,
+                    state=State.active()):
+                return JsonResponse({"code": "999.999.005", "message": "Phone number already exists"})
             k = {
                 "username": username,
+                "email": email,
+                "phone_number": phone_number,
                 "first_name": data.get("first_name", ""),
                 "last_name": data.get("last_name", ""),
                 "other_name": data.get("other_name", ""),
-                "phone_number": data.get("phone_number", ""),
-                "email": data.get("email", ""),
             }
             user = UserService().update(pk=user_id, **k)
             if not user:
-                return JsonResponse({"code": "999.999.005", "message": "User not updated"})
+                return JsonResponse({"code": "999.999.006", "message": "User not updated"})
             return JsonResponse({"code": "100.000.000", "message": "User updated successfully"})
         except Exception as e:
             lgr.exception("Update personal details exception: %s" % e)
@@ -240,7 +257,7 @@ class UsersAdministration(TransactionLogBase):
         """
         transaction = None
         try:
-            transaction = self.log_transaction("ChangePassword", request=request)
+            transaction = self.log_transaction("ChangeRole", request=request)
             if not transaction:
                 return JsonResponse({"code": "999.999.001", "message": "Transaction not created"})
             data = get_request_data(request)
