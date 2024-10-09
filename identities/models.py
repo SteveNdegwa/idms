@@ -25,13 +25,11 @@ class Identity(BaseModel):
 		ordering = ('-date_created',)
 
 	def clean(self):
-		"""Ensure that at least a user or a member or a public api user has been set"""
 		if self.user is None:
 			raise ValidationError('The User MUST be set for the token.')
 		super(Identity, self).clean()
 
 	def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-		"""Override saving the Model to ensure that the required objects have been set."""
 		if not self.user:
 			raise ValidationError('The user must be set for the token.')
 		super(Identity, self).save(force_insert, force_update, using, update_fields)
@@ -42,6 +40,7 @@ class Identity(BaseModel):
 		@return: The model instance after saving.
 		@rtype: Identity
 		"""
+		# noinspection PyBroadException
 		try:
 			self.expires_at = token_expiry()
 			self.save()
