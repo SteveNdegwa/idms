@@ -91,7 +91,7 @@ class State(GenericBaseModel):
 
 class Country(GenericBaseModel):
     code = models.CharField(max_length=10, null=True, blank=True)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s - %s" % (self.name, self.code)
@@ -108,7 +108,7 @@ class Country(GenericBaseModel):
             return None
 
 class TransactionType(GenericBaseModel):
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -123,7 +123,7 @@ class Transaction(BaseModel):
     request = models.TextField(null=True, blank=True)
     response = models.TextField(null=True, blank=True)
     notification_response = models.TextField(null=True, blank=True)
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     SYNC_MODEL = False
 
@@ -134,7 +134,7 @@ class Transaction(BaseModel):
         ordering = ('-date_created',)
 
 class NotificationType(GenericBaseModel):
-    state = models.ForeignKey(State, null=True, blank=True, default=State.active(), on_delete=models.CASCADE)
+    state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name

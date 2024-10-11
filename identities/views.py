@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from base.models import State
 from identities.backend.services import IdentityService
 from users.backend.services import UserService
-from utils.common import create_notification_detail, get_client_ip
+from utils.common import create_notification_detail
 from utils.generate_system_aoth_otp import OAuthHelper
 from utils.get_request_data import get_request_data
 from utils.transaction_log_base import TransactionLogBase
@@ -32,6 +32,7 @@ class IdentitiesAdministration(TransactionLogBase):
             credential = data.get("credential", "")
             password = data.get("password", "")
             system = data.get("system", "")
+            source_ip = data.get("source_ip", "")
             if not credential or not password:
                 return JsonResponse({"code": "999.999.001", "message": "Login credentials not provided"})
             if not system:
@@ -56,7 +57,7 @@ class IdentitiesAdministration(TransactionLogBase):
                     key = (otp[1]).decode()
                     totp =  otp[0]
                     oauth = IdentityService().create(
-                        user=user, source_ip=get_client_ip(request), totp_key=key, totp_time_value=otp[2],
+                        user=user, source_ip=source_ip, totp_key=key, totp_time_value=otp[2],
                         state=State.activation_pending())
                     if not oauth:
                         return JsonResponse({"code": "999.999.005", "message": "Identity not created"})

@@ -1,4 +1,4 @@
-from users.models import User, Role, Permission, RolePermission
+from users.models import User, Role, Permission, RolePermission, Profile
 from utils.servicebase import ServiceBase
 
 
@@ -13,4 +13,7 @@ class PermissionService(ServiceBase):
 
 class RolePermissionService(ServiceBase):
     manager = RolePermission.objects
+
+class ProfileService(ServiceBase):
+    manager = Profile.objects
 

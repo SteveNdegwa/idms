@@ -14,7 +14,7 @@ class Identity(BaseModel):
 		max_length=50, null=True, blank=True, help_text='The originating IP Address.')
 	totp_key = models.CharField(max_length=100, blank=True, null=True)
 	totp_time_value = models.CharField(max_length=100, blank=True, null=True)
-	state = models.ForeignKey(State, default=State.activation_pending(), on_delete=models.CASCADE)
+	state = models.ForeignKey(State, default=State.activation_pending, on_delete=models.CASCADE)
 
 	SYNC_MODEL = False
 
