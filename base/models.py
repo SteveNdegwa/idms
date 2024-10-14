@@ -156,6 +156,3 @@ class Notification(BaseModel):
 
     class Meta:
         ordering = ('-date_created',)
-
-
-

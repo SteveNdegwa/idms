@@ -25,7 +25,7 @@ class UsersAdministration(TransactionLogBase):
     @user_login_required
     def create_user(self, request):
         """
-        Creates a person
+        Creates a user
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
@@ -40,6 +40,7 @@ class UsersAdministration(TransactionLogBase):
             email = data.get("email", "")
             phone_number = data.get("phone_number", "")
             systems = data.get("systems", [])
+            data.pop("source_ip" ,"")
             if not username or not email or not phone_number:
                 response = {"code": "999.999.002", "message": "Provide all required details"}
                 self.mark_transaction_failed(transaction, response=response)
@@ -95,7 +96,7 @@ class UsersAdministration(TransactionLogBase):
     @user_login_required
     def delete_user(self, request):
         """
-        Creates a person
+        Deletes a user
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
@@ -140,6 +141,7 @@ class UsersAdministration(TransactionLogBase):
         try:
             data = get_request_data(request)
             user_id = data.pop("user_id", "")
+            data.pop("source_ip", "")
             user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
@@ -178,6 +180,7 @@ class UsersAdministration(TransactionLogBase):
         try:
             data = get_request_data(request)
             user_id = data.pop("user_id", "")
+            data.pop("source_ip", "")
             user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
@@ -411,6 +414,7 @@ class UsersAdministration(TransactionLogBase):
         try:
             data = get_request_data(request)
             system = data.pop("system", "")
+            data.pop("source_ip", "")
             system = SystemService().get(name=system)
             if not system:
                 return JsonResponse({"code": "999.999.001", "message": "System not found"})

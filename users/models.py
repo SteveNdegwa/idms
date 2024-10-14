@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
@@ -11,7 +11,6 @@ from django.utils import timezone
 from base.models import BaseModel, State, GenericBaseModel, Country
 from organisations.models import Organisation
 from systems.models import System
-from users.managers import UserManager
 
 lgr = logging.getLogger(__name__)
 lgr.propagate = False
@@ -155,7 +154,7 @@ class User(BaseModel, AbstractUser):
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     """ Creates a profile after a user is created """
-    if created and instance.role.name in ["Customer"] and not instance.profile:
+    if created and not instance.is_superuser and  instance.role.name in ["Customer"] and not instance.profile:
         profile = Profile.objects.create()
         instance.profile = profile
         instance.save()
