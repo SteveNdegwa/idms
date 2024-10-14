@@ -47,7 +47,9 @@ class IdentitiesAdministration(TransactionLogBase):
                 return JsonResponse({"code": "999.999.004", "message": "Wrong credentials"})
             IdentityService().filter(
                 user=user, state=State.active()).exclude(date_created__date=timezone.now()).update(state=State.expired())
-            oauth = IdentityService().filter(user=user, state=State.active())
+            oauth = IdentityService().filter(
+                Q(state=State.active()) | Q(state=State.activation_pending()), user=user,
+                date_created__date=timezone.now())
             oauth = oauth.order_by('-date_created').first() if oauth else None
             if not oauth:
                 oauth = IdentityService().filter(user=user, date_created__date=timezone.now(), state=State.expired())
