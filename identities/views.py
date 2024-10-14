@@ -45,6 +45,8 @@ class IdentitiesAdministration(TransactionLogBase):
             user = user.first()
             if not user.check_password(password):
                 return JsonResponse({"code": "999.999.004", "message": "Wrong credentials"})
+            IdentityService().filter(
+                user=user, state=State.active()).exclude(date_created__date=timezone.now()).update(state=State.expired())
             oauth = IdentityService().filter(user=user, state=State.active())
             oauth = oauth.order_by('-date_created').first() if oauth else None
             if not oauth:
