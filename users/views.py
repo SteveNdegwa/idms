@@ -406,7 +406,7 @@ class UsersAdministration(TransactionLogBase):
     @user_login_required
     def fetch_users(self, request):
         """
-        Fetches details of a user
+        Fetches details of filtered users
         @params: WSGI Request
         @return: success message and user details or failure message
         @rtype: JsonResponse
