@@ -129,9 +129,7 @@ class IdentitiesAdministration(TransactionLogBase):
             user = UserService().get(id=user_id, state=State.active())
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
-            oauth = IdentityService().filter(user=user, state=State.active())
-            if oauth:
-                oauth.update(state=State.expired())
+            IdentityService().filter(user=user, state=State.active()).update(state=State.expired())
             return JsonResponse({"code": "100.000.000", "message": "User logged out successfully"})
         except Exception as e:
             lgr.exception("Logout exception: %s" % e)
