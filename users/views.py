@@ -455,3 +455,9 @@ class UsersAdministration(TransactionLogBase):
         except Exception as e:
             lgr.exception("Fetch user exception: %s" % e)
             return JsonResponse({"code": "999.999.999", "message": "Fetch user failed with an exception"})
+
+    @csrf_exempt
+    def test(self, request):
+        print(request)
+        print(get_request_data(request))
+        return JsonResponse({"message": "success"})

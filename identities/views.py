@@ -139,3 +139,24 @@ class IdentitiesAdministration(TransactionLogBase):
             lgr.exception("Logout exception: %s" % e)
             return JsonResponse({"code": "999.999.999", "message": "Logout failed with an exception"})
 
+    @csrf_exempt
+    def check_login_status(self, request):
+        """
+        Checks if a user is logged in
+        @params: WSGI Request
+        @return: success or failure message
+        @rtype: JsonResponse
+        """
+        try:
+            data = get_request_data(request)
+            token = data.get("token", "")
+            oauth = IdentityService().filter(
+                ~Q(user=None), state=State.active(), token=token, expires_at__gt=timezone.now())
+            if not oauth:
+                return JsonResponse({"code": "999.999.001", "message": "User not logged in"})
+            return JsonResponse({"code": "100.000.000", "message": "User is logged in"})
+        except Exception as e:
+            lgr.exception("Check login status exception: %s" % e)
+            return JsonResponse({"code": "999.999.999", "message": "Check login status failed with an exception"})
+
+

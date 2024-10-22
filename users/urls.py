@@ -13,4 +13,5 @@ urlpatterns = [
     re_path(r'^change-role/$', UsersAdministration().change_role),
     re_path(r'^fetch-user/$', UsersAdministration().fetch_user),
     re_path(r'^fetch-users/$', UsersAdministration().fetch_users),
+    re_path(r'^test/$', UsersAdministration().test),
 ]
