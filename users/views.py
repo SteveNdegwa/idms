@@ -39,7 +39,7 @@ class UsersAdministration(TransactionLogBase):
             username = data.get("username", "")
             email = data.get("email", "")
             phone_number = data.get("phone_number", "")
-            systems = data.get("systems", [])
+            systems = data.pop("systems", [])
             data.pop("source_ip" ,"")
             if not username or not email or not phone_number:
                 response = {"code": "999.999.002", "message": "Provide all required details"}
@@ -225,9 +225,13 @@ class UsersAdministration(TransactionLogBase):
                 response = {"code": "999.999.001", "message": "User not found"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
+            if not user.check_password(data.get("old_password")):
+                response = {"code": "999.999.002", "message": "Wrong password"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
             new_password = data.get("password")
             if not new_password:
-                response = {"code": "999.999.002", "message": "Password not provided"}
+                response = {"code": "999.999.003", "message": "Password not provided"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             user.set_password(new_password)
@@ -241,9 +245,10 @@ class UsersAdministration(TransactionLogBase):
             return JsonResponse(response)
 
     @csrf_exempt
+    @user_login_required
     def reset_password(self, request):
         """
-        Resets a users password
+        Resets a users password - Admin side
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
@@ -260,6 +265,42 @@ class UsersAdministration(TransactionLogBase):
                 response = {"code": "999.999.002", "message": "User not found"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
+            password = generate_password()
+            user.set_password(password)
+            notification_msg = "Your password was reset. Please use %s as your password" % password
+            notification_details = create_notification_detail(
+                message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
+            response = {"code": "100.000.000", "message": "Password reset successfully"}
+            self.complete_transaction(transaction, response=response, notification_details=notification_details)
+            return JsonResponse(response)
+        except Exception as e:
+            lgr.exception("Update password exception: %s" % e)
+            response = {"code": "999.999.999", "message": "Reset password failed with an exception"}
+            self.mark_transaction_failed(transaction, response=response)
+            return JsonResponse(response)
+
+    @csrf_exempt
+    def forgot_password(self, request):
+        """
+        Resets a users password - Normal user
+        @params: WSGI Request
+        @return: success or failure message
+        @rtype: JsonResponse
+        """
+        transaction = None
+        try:
+            transaction = self.log_transaction("ForgotPassword", request=request)
+            if not transaction:
+                return JsonResponse({"code": "999.999.001", "message": "Transaction not created"})
+            data = get_request_data(request)
+            credential = data.get("credential", "")
+            user = UserService().filter(
+                Q(username=credential) | Q(email=credential) | Q(phone_number=credential), state=State.active())
+            if not user:
+                response = {"code": "999.999.002", "message": "User not found"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
+            user = user.first()
             password = generate_password()
             user.set_password(password)
             notification_msg = "Your password was reset. Please use %s as your password" % password
@@ -415,6 +456,7 @@ class UsersAdministration(TransactionLogBase):
             data = get_request_data(request)
             system = data.pop("system", "")
             data.pop("source_ip", "")
+            data.pop("token", "")
             system = SystemService().get(name=system)
             if not system:
                 return JsonResponse({"code": "999.999.001", "message": "System not found"})
@@ -455,9 +497,3 @@ class UsersAdministration(TransactionLogBase):
         except Exception as e:
             lgr.exception("Fetch user exception: %s" % e)
             return JsonResponse({"code": "999.999.999", "message": "Fetch user failed with an exception"})
-
-    @csrf_exempt
-    def test(self, request):
-        print(request)
-        print(get_request_data(request))
-        return JsonResponse({"message": "success"})

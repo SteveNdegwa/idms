@@ -73,6 +73,7 @@ class IdentitiesAdministration(TransactionLogBase):
             user.update_last_activity()
             return JsonResponse({
                 "code": "100.000.000",
+                "message": "Login successful",
                 "data": {
                     "token": str(oauth.token),
                     "user_id": str(user.id),
@@ -110,6 +111,7 @@ class IdentitiesAdministration(TransactionLogBase):
             oauth = oauth.extend()
             return JsonResponse({
                 "code": "100.000.000",
+                "message": "OTP verified",
                 "data": {
                     "activated": True,
                     "expires_at": calendar.timegm(oauth.expires_at.timetuple())
