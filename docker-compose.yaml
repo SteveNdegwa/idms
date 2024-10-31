@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - 8000:8000
+    environment:
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=idms
+      - SQL_USER=postgres
+      - SQL_PASSWORD=postgres
+      - SQL_HOST=postgres
+      - SQL_PORT=5432
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - postgres
+    image: idms:app
+    container_name: idms_container
+    command: gunicorn --bind 0.0.0.0:8000 --timeout 999 -w 2 idms.wsgi:application
+
+  postgres:
+    image: postgres:17
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=idms
+
+volumes:
+  postgres_data:
