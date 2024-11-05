@@ -1,4 +1,7 @@
+import base64
+import binascii
 import logging
+import os
 import random
 from datetime import datetime, date, timedelta
 from decimal import Decimal
@@ -38,6 +41,16 @@ def generate_password(length=6):
         cln.append(random.choice(groups[int(random.choice('0123'))]))
     random.shuffle(cln)
     return ''.join(cln)
+
+
+def generate_token(size=15):
+    """Generates a standard token to be used for ABC + etc."""
+    try:
+        return base64.b64encode(binascii.hexlify(os.urandom(size))).decode()
+    except Exception as e:
+        lgr.exception('generate_token Exception: %s', e)
+    return None
+
 
 def json_super_serializer(obj):
     """

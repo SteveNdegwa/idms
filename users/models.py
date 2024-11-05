@@ -1,7 +1,6 @@
 import logging
 
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
@@ -99,7 +98,6 @@ class User(BaseModel, AbstractUser):
     profile = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.CASCADE)
     state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
-    objects = UserManager()
     SYNC_MODEL = False
 
     def __str__(self):
@@ -122,15 +120,6 @@ class User(BaseModel, AbstractUser):
         if not self.is_superuser and not self.role:
             raise ValidationError("A user must have a role")
         super(User, self).save(*args, **kwargs)
-
-    def set_password(self, raw_password):
-        try:
-            self.password = make_password(raw_password)
-            self.save()
-            return True
-        except Exception as e:
-            lgr.exception("User model - set password exception: %s" % e)
-            return False
 
     def full_name(self):
         return "%s %s %s" % (self.first_name, self.other_name, self.last_name)
