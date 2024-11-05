@@ -19,10 +19,10 @@ def AuthorizeMiddleware(get_response):
                         username, password = (base64.b64decode(auth_token[1])).decode("utf-8").split(':')
                         if APIUserService().get(username=username, password=password):
                             return get_response(request)
-                return JsonResponse({"code": "888.888.888", "message": "Not Authorized"})
+                return JsonResponse({"code": "888.888.888", "message": "Not Authorized"}, status=403)
             else:
                 return get_response(request)
         return middleware
     except Exception as ex:
         lgr.exception("AuthorizeMiddleware exception: %s" % ex)
-        return JsonResponse({"code": "888.888.888", "message": "Not Authorized"})
+        return JsonResponse({"code": "888.888.888", "message": "Not Authorized"}, status=403)
