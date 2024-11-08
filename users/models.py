@@ -1,6 +1,6 @@
 import logging
 
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
@@ -98,6 +98,7 @@ class User(BaseModel, AbstractUser):
     profile = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.CASCADE)
     state = models.ForeignKey(State, null=True, blank=True, default=State.active, on_delete=models.CASCADE)
 
+    objects = UserManager()
     SYNC_MODEL = False
 
     def __str__(self):

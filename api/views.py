@@ -1,3 +1,4 @@
+import base64
 import logging
 
 from django.http import JsonResponse
@@ -14,6 +15,36 @@ from utils.transaction_log_base import TransactionLogBase
 lgr = logging.getLogger(__name__)
 
 class APIManager(TransactionLogBase):
+    @staticmethod
+    @csrf_exempt
+    def generate_token(request):
+        """
+        Generates an access token for system to system communication
+        @params: WSGI Request
+        @return: success message and token or failure message
+        @rtype: JsonResponse
+        """
+        try:
+            data = get_request_data(request)
+            username = data.get("consumer_key", "")
+            password = data.get("consumer_secret", "")
+            if not username or not password:
+                return JsonResponse({"code": "999.999.001", "message": "Credentials not provided"})
+            api_user =  APIUserService().get(username=username)
+            if not api_user:
+                return JsonResponse({"code": "999.999.002", "message": "Wrong credentials"})
+            if not api_user.check_password(password):
+                return JsonResponse({"code": "999.999.003", "message": "Wrong credentials"})
+            credentials = ''.join(([username, ':', password]))
+            credentials_bytes = credentials.encode('utf-8')
+            base64_bytes = base64.b64encode(credentials_bytes)
+            basic_auth = base64_bytes.decode('utf-8')
+            return JsonResponse({"code": "100.000.000", "message": "Token generated successfully", "token": basic_auth})
+        except Exception as ex:
+            lgr.exception("API Manager - generate_token exception: %s" % ex)
+            return JsonResponse({"code": "999.999.999", "message": "Generate token failed with an exception"})
+
+
     @staticmethod
     @csrf_exempt
     @user_login_required
@@ -92,5 +123,3 @@ class APIManager(TransactionLogBase):
         except Exception as ex:
             lgr.exception("API Manager - refresh_api_keys exception: %s" % ex)
             return JsonResponse({"code": "999.999.999", "message": "Refresh API keys failed with an exception"})
-
-

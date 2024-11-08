@@ -3,6 +3,7 @@ from django.urls import re_path, include
 from api.views import APIManager
 
 urlpatterns = [
+    re_path(r'^generate-token/', APIManager().generate_token),
     re_path(r'^create-api-user/', APIManager().create_api_user),
     re_path(r'^refresh-api-keys/', APIManager().refresh_api_keys),
     re_path(r'^users/', include('users.urls')),
