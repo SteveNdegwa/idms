@@ -23,6 +23,7 @@ lgr.propagate = False
 class UsersAdministration(TransactionLogBase):
     @csrf_exempt
     @user_login_required
+    @trx.atomic
     def create_user(self, request):
         """
         Creates a user
@@ -57,29 +58,32 @@ class UsersAdministration(TransactionLogBase):
                 response = {"code": "999.999.005", "message": "Phone number already exists"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
-            organisation = data.get("organisation", "")
-            organisation = OrganisationService().filter(Q(name=organisation) | Q(remote_code=organisation))
-            organisation = organisation.order_by('-date_created').first() if organisation else None
             role = data.get("role", "")
             role = RoleService().get(name=role, state=State.active())
             if not role:
                 response = {"code": "999.999.006", "message": "Role provided not valid"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
-            data.update({"role": role, "organisation": organisation})
-            with trx.atomic():
-                user = UserService().create(**data)
-                if not user:
-                    response = {"code": "999.999.007", "message": "User not created"}
+            data["role"] = role
+            if "organisation" in data:
+                organisation = data.get("organisation")
+                organisation = OrganisationService().filter(Q(name=organisation) | Q(remote_code=organisation))
+                if not organisation:
+                    response = {"code": "999.999.007", "message": "Invalid organisation"}
                     self.mark_transaction_failed(transaction, response=response)
                     return JsonResponse(response)
-                for system in systems:
-                    s = SystemService().get(name=system)
-                    if not s:
-                        raise Exception("Invalid system - %s" % system)
-                    user.systems.add(s)
+                data["organisation"] = organisation
+            user = UserService().create(**data)
+            if not user:
+                raise Exception("User not created - data: %s" % data)
+            for system in systems:
+                s = SystemService().get(name=system)
+                if not s:
+                    raise Exception("Invalid system - %s" % system)
+                user.systems.add(s)
             password = generate_password()
             user.set_password(password)
+            user.save()
             notification_msg = "Welcome, use your phone number or email to login and %s as your password" % password
             notification_details = create_notification_detail(
                 message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
@@ -114,9 +118,7 @@ class UsersAdministration(TransactionLogBase):
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             if not UserService().update(pk=user_id, state=State.inactive()):
-                response = {"code": "999.999.003", "message": "User not deleted"}
-                self.mark_transaction_failed(transaction, response=response)
-                return JsonResponse(response)
+                raise Exception("User not deleted - user_id: %s" % user_id)
             notification_msg = "Your account has been deleted successfully"
             notification_details = create_notification_detail(
                 message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
@@ -133,7 +135,7 @@ class UsersAdministration(TransactionLogBase):
     @user_login_required
     def update_personal_details(self, request):
         """
-        Edits a person's details
+        Edits a user's details
         @params: WSGI Request
         @return: success or failure message
         @rtype: JsonResponse
@@ -160,9 +162,13 @@ class UsersAdministration(TransactionLogBase):
                     ~Q(id=user_id), systems_in=list(user.systems.all()), phone_number=phone_number,
                     state=State.active()):
                 return JsonResponse({"code": "999.999.005", "message": "Phone number already exists"})
+            if "role" in data:
+                raise Exception("Role can not be updated")
+            if "organisation" in data:
+                raise Exception("Organisation can not be updated")
             user = UserService().update(pk=user_id, **data)
             if not user:
-                return JsonResponse({"code": "999.999.006", "message": "User not updated"})
+                raise Exception("User's personal details not updated' - data: %s" % data)
             return JsonResponse({"code": "100.000.000", "message": "User updated successfully"})
         except Exception as e:
             lgr.exception("Update personal details exception: %s" % e)
@@ -185,20 +191,21 @@ class UsersAdministration(TransactionLogBase):
             if not user:
                 return JsonResponse({"code": "999.999.001", "message": "User not found"})
             if not user.profile:
-                return JsonResponse({"code": "999.999.002", "message": "Profile not found"})
-            country = data.get("country", "")
-            country = CountryService().filter(Q(name=country) | Q(code=country))
-            if not country:
-                return JsonResponse({"code": "999.999.003", "message": "Country not found"})
-            country = country.first()
-            country_of_work = data.get("country_of_work", "")
-            country_of_work = CountryService().filter(Q(name=country_of_work) | Q(code=country_of_work))
-            if not country_of_work:
-                return JsonResponse({"code": "999.999.004", "message": "Country of work not found"})
-            country_of_work = country_of_work.first()
-            data.update({"country": country, "country_of_work": country_of_work})
+                return JsonResponse({"code": "999.999.002", "message": "User profile not found"})
+            if "country" in data:
+                country = data.get("country")
+                country = CountryService().filter(Q(name=country) | Q(code=country))
+                if not country:
+                    return JsonResponse({"code": "999.999.003", "message": "Country not found"})
+                data["country"] = country.first()
+            if "country_of_work" in data:
+                country_of_work = data.get("country_of_work")
+                country_of_work = CountryService().filter(Q(name=country_of_work) | Q(code=country_of_work))
+                if not country_of_work:
+                    return JsonResponse({"code": "999.999.004", "message": "Country of work not found"})
+                data["country_of_work"] = country_of_work.first()
             if not ProfileService().update(pk=user.profile.id, **data):
-                return JsonResponse({"code": "999.999.005", "message": "Profile not updated"})
+                raise Exception("User profile not updated - user_id: %s data: %s" % (user_id, data))
             return JsonResponse({"code": "100.000.000", "message": "Profile updated successfully"})
         except Exception as e:
             lgr.exception("Update profile exception: %s" % e)
@@ -235,6 +242,7 @@ class UsersAdministration(TransactionLogBase):
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             user.set_password(new_password)
+            user.save()
             response = {"code": "100.000.000", "message": "Password changed successfully"}
             self.complete_transaction(transaction, response=response)
             return JsonResponse(response)
@@ -267,6 +275,7 @@ class UsersAdministration(TransactionLogBase):
                 return JsonResponse(response)
             password = generate_password()
             user.set_password(password)
+            user.save()
             notification_msg = "Your password was reset. Please use %s as your password" % password
             notification_details = create_notification_detail(
                 message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
@@ -294,15 +303,31 @@ class UsersAdministration(TransactionLogBase):
                 return JsonResponse({"code": "999.999.001", "message": "Transaction not created"})
             data = get_request_data(request)
             credential = data.get("credential", "")
+            if not credential:
+                response = {"code": "999.999.002", "message": "Credential not provided"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
+            system = data.get("system", "")
+            if not system:
+                response = {"code": "999.999.003", "message": "System not provided"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
+            system = SystemService().get(name=system)
+            if not system:
+                response = {"code": "999.999.004", "message": "Invalid system"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
             user = UserService().filter(
-                Q(username=credential) | Q(email=credential) | Q(phone_number=credential), state=State.active())
+                Q(username=credential) | Q(email=credential) | Q(phone_number=credential), systems=system,
+                state=State.active())
             if not user:
-                response = {"code": "999.999.002", "message": "User not found"}
+                response = {"code": "999.999.005", "message": "User not found"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             user = user.first()
             password = generate_password()
             user.set_password(password)
+            user.save()
             notification_msg = "Your password was reset. Please use %s as your password" % password
             notification_details = create_notification_detail(
                 message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
@@ -337,15 +362,17 @@ class UsersAdministration(TransactionLogBase):
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             role = data.get("role", "")
+            if not role:
+                response = {"code": "999.999.003", "message": "Role name not provided"}
+                self.mark_transaction_failed(transaction, response=response)
+                return JsonResponse(response)
             role = RoleService().get(name=role, state=State.active())
             if not role:
-                response = {"code": "999.999.003", "message": "Role provided not valid"}
+                response = {"code": "999.999.004", "message": "Role provided not valid"}
                 self.mark_transaction_failed(transaction, response=response)
                 return JsonResponse(response)
             if not UserService().update(pk=user_id, role=role):
-                response = {"code": "999.999.004", "message": "Role not changed"}
-                self.mark_transaction_failed(transaction, response=response)
-                return JsonResponse(response)
+                raise Exception("Role not updated - user_id: %s role_name: %s" % (user_id, role.name))
             notification_msg = "Your role was changed to %s successfully" % role.name
             notification_details = create_notification_detail(
                 message_code="SC0009", message_type="2", message=notification_msg, destination=user.email)
@@ -444,7 +471,6 @@ class UsersAdministration(TransactionLogBase):
             return JsonResponse({"code": "999.999.999", "message": "Fetch user failed with an exception"})
 
     @csrf_exempt
-    @user_login_required
     def fetch_users(self, request):
         """
         Fetches details of filtered users
@@ -457,21 +483,23 @@ class UsersAdministration(TransactionLogBase):
             system = data.pop("system", "")
             data.pop("source_ip", "")
             data.pop("token", "")
+            if not system:
+                return JsonResponse({"code": "999.999.001", "message": "System not provided"})
             system = SystemService().get(name=system)
             if not system:
-                return JsonResponse({"code": "999.999.001", "message": "System not found"})
-            if 'organisation' in data:
+                return JsonResponse({"code": "999.999.002", "message": "Invalid system"})
+            if "organisation" in data:
                 organisation = data.get("organisation")
                 organisation = OrganisationService().filter(
                     Q(name=organisation) | Q(remote_code=Organisation), state=State.active())
                 if not organisation:
-                    return JsonResponse({"code": "999.999.002", "message": "Organisation not found"})
+                    return JsonResponse({"code": "999.999.002", "message": "Invalid organisation"})
                 data["organisation"] = organisation.first()
-            if 'role' in data:
+            if "role" in data:
                 role = data.get("role")
                 role = RoleService().get(name=role, state=State.active())
                 if not role:
-                    return JsonResponse({"code": "999.999.003", "message": "Role not found"})
+                    return JsonResponse({"code": "999.999.003", "message": "Invalid role"})
                 data["role"] = role
             users_data = []
             if UserService().filter(**data, systems=system, state=State.active()):
